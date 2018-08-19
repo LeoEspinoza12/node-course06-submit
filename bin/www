@@ -1,0 +1,127 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('confusionserver:server');
+var http = require('http');
+
+
+/////////////////////////////////////////////////////////
+// require two modules the https and fs
+const https = require('https')
+const fs = require('fs')
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+
+
+/////////////////////////////////////////////////////////
+// we will declare a secured port https
+// if the client will access https, then use http
+// if not the cleint can use https which is secured
+var port = normalizePort(process.env.PORT || '3000');
+// not secured port http
+app.set('port', port);
+// secured port https
+app.set('secPort', port + 443)
+
+
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+
+////////////////////////////////////////////////////////
+// create an https server configuration
+var options = {
+  key: fs.readFileSync(__dirname + '/private.key'),
+  cert: fs.readFileSync(__dirname + '/certificate.pem')
+};
+
+
+////////////////////////////////////////////////////////
+// configure the secure server
+var secureServer = https.createServer(options, app);
+
+
+// set the secure server to listen to the port
+secureServer.listen(app.get('secPort'), ()=> {
+  console.log('Secure server is listening on port: ', app.get('secPort'));
+})
+
+// if the error occurs, the onError function will be called
+// which is already configured down below
+secureServer.on('error', onError);
+// if the server listens then the function onListening will 
+// be called which is already configured down below
+secureServer.on('listening', onListening)
+
+
+// Normalize a port into a number, string, or false.
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+    if (isNaN(port)) {
+      // named pipe
+      return val;
+    }
+
+      if (port >= 0) {
+        // port number
+        return port;
+      }
+
+        return false;
+}
+
+
+// Event listener for HTTP server "error" event.
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+
+// Event listener for HTTP server "listening" event.
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
